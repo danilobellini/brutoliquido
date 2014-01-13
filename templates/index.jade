@@ -1,0 +1,33 @@
+!!! 5
+html
+  head
+    meta(charset="utf-8")
+    meta(name="viewport",
+         content="width=device-width, initial-scale=1.0")
+    title Salários
+  body
+    header
+      h1 Salários
+    .conteudo
+      form(method="GET", action="calc")
+        .input-block
+          .descr Data base:
+          .input
+            select(name="data")
+              - for data in datas_base[::-1]
+                option= data
+        .input-row
+          .descr Liquido mensal:
+          .input
+            input(name="liquido")
+        .input-row
+          .descr Bruto mensal (INSS ainda a descontar):
+          .input
+            input(name="bruto")
+        .input-row
+          .descr Bruto mensal (INSS já descontado):
+          .input
+            input(name="bruto_sem_inss")
+        .input-row
+          .input
+            input(type="submit", value="Calcular")
