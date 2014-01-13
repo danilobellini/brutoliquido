@@ -8,26 +8,29 @@ html
   body
     header
       h1 Salários
+
     .conteudo
       form(method="GET", action="calc")
         .input-block
           .descr Data base:
           .input
-            select(name="data")
+            select#data(name="data")
               - for data in datas_base[::-1]
                 option= data
         .input-row
           .descr Liquido mensal:
           .input
-            input(name="liquido")
+            input.bl#liquido(name="liquido")
         .input-row
           .descr Bruto mensal (INSS ainda a descontar):
           .input
-            input(name="bruto")
+            input.bl#bruto(name="bruto")
         .input-row
           .descr Bruto mensal (INSS já descontado):
           .input
-            input(name="bruto_sem_inss")
-        .input-row
-          .input
-            input(type="submit", value="Calcular")
+            input.bl#bruto_sem_inss(name="bruto_sem_inss")
+
+      pre#result
+
+    script(type="text/javascript",
+           src="{{url_for('static', filename='main.js')}}")

@@ -27,10 +27,43 @@ from datetime import datetime
 from numbers import Number
 from mpmath import findroot
 from flask import Flask, jsonify, render_template, request, g
-
+import coffeescript, codecs
+from os.path import exists, getmtime
+import os
 
 app = Flask(__name__)
 app.jinja_env.add_extension('pyjade.ext.jinja.PyJadeExtension')
+
+
+uopen = lambda fname, mode: codecs.open(fname, mode, encoding="utf-8")
+
+def static_file_converted(fnamebase, converter, from_ext, to_ext):
+    in_fname = "templates/{fnamebase}.{from_ext}".format(**locals())
+    out_fname_nodir = "{fnamebase}.{to_ext}".format(**locals())
+
+    out_dir = app.root_path + app.static_url_path
+    out_fname = os.path.join(out_dir, out_fname_nodir)
+
+    if not exists(in_fname):
+        abort(404)
+
+    if (not exists(out_fname)) or getmtime(in_fname) >= getmtime(out_fname):
+        if not exists(out_dir):
+            os.makedirs(out_dir)
+        with uopen(in_fname,  "r") as in_file:
+            with uopen(out_fname, "w") as out_file:
+                out_file.write(converter(in_file.read()))
+
+    return out_fname_nodir
+
+@app.route(app.static_url_path + "/<path:fnamebase>.js")
+def _get_js(fnamebase):
+    return app.send_static_file(static_file_converted(
+      fnamebase = fnamebase,
+      converter = coffeescript.compile,
+      from_ext = "coffee",
+      to_ext = "js"
+    ))
 
 
 class DateStrKeyDict(dict):
@@ -183,6 +216,8 @@ def index():
 @app.route("/calc", methods=["GET", "POST"])
 def ajax_calc():
     source = request.args if request.method == "GET" else request.form
+    #app.logger.info(dict(request.headers))
+    app.logger.info(request.data)
     g.data = datas_base_dict.encontra_data_base(source.get("data", None))
     try:
         valores = [str2r(source.get(k, ""))
