@@ -10,7 +10,7 @@ html
       h1 Salários
 
     .conteudo
-      form(method="GET", action="calc")
+      form
         .input-block
           .descr Data base:
           .input
@@ -31,6 +31,35 @@ html
             input.bl#bruto_sem_inss(name="bruto_sem_inss")
 
       pre#result
+
+    footer
+      .specs
+        p
+          | O conteúdo exibido por este sistema pode ser acessado pelo
+          | webservice em
+          i /calc
+          |. Os parâmetros são todos opcionais, mas apenas
+          | um entre os 3 últimos deve ser diferente de zero:
+        ul
+          li
+            b data:
+            | String com um dos valores exibidos como data base.
+            | Valor padrão: {{datas_base[-1]}} (maior valor disponível)
+          li
+            b liquido:
+            | Valor em reais do salário mensal líquido.
+            | Valor padrão: R$ 0,00 (zero)
+          li
+            b bruto:
+            | Valor em reais do salário mensal bruto, INSS ainda a descontar.
+            | Valor padrão: R$ 0,00 (zero)
+          li
+            b bruto_sem_inss:
+            | Valor em reais do salário mensal bruto, INSS já descontado.
+            | Valor padrão: R$ 0,00 (zero)
+
+      .copyright
+        | 2014 (C) Criado por Danilo J. S. Bellini.
 
     script(type="text/javascript",
            src="{{url_for('static', filename='main.js')}}")
