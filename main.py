@@ -105,6 +105,11 @@ inss_pares = DateStrKeyDict({
         [1247.705, .09],
         [2079.505, .11],
     ], 4159.00),
+    "2014": ([
+        [   0.000, .08],
+        [1317.075, .09],
+        [2195.125, .11],
+    ], 4390.24),
 })
 
 inss_teto = DateStrKeyDict((k, round(limite * tabela[-1][-1], 2)) # Em R$
