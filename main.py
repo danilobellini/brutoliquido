@@ -27,15 +27,15 @@ from datetime import datetime
 from numbers import Number
 from mpmath import findroot
 from flask import Flask, jsonify, render_template, request, g, abort
-import coffeescript, codecs
+import coffeescript
 from os.path import exists, getmtime
 import os
+
+from misc import uopen, currency2float
 
 app = Flask(__name__)
 app.jinja_env.add_extension('pyjade.ext.jinja.PyJadeExtension')
 
-
-uopen = lambda fname, mode: codecs.open(fname, mode, encoding="utf-8")
 
 def static_file_converted(fnamebase, converter, from_ext, to_ext):
     in_fname = "templates/{fnamebase}.{from_ext}".format(**locals())
@@ -177,23 +177,6 @@ def bruto_sem_inss2bruto(bruto_sem_inss):
     return findroot(func, bruto_sem_inss)
 
 
-def str2r(val):
-    """ Trata a string e converte para ponto flutuante o valor em R$ """
-    val = val.strip().replace(" ", "")
-    if val.startswith("R$"):
-        val = val[2:].lstrip()
-    if "." in val and "," in val:
-        val = val.replace(min(".,", key=val.index), "")
-    if "," in val:
-        val = val.replace(",", ".")
-    if val.count(".") > 1:
-        idx = val.index(".")
-        val = ".".join(val[:idx], val[idx + 1:].replace(".", ""))
-    if not val:
-        return 0.
-    return float(val)
-
-
 def todos_valores(bruto):
     """ Cálculo direto do IRPF, INSS e salário líquido a partir do bruto """
     valor_inss = inss(bruto)
@@ -227,7 +210,7 @@ def ajax_calc():
     source = request.args if request.method == "GET" else request.form
     g.data = datas_base_dict.encontra_data_base(source.get("data", None))
     try:
-        valores = [str2r(source.get(k, ""))
+        valores = [currency2float(source.get(k, ""))
                    for k in ["liquido", "bruto", "bruto_sem_inss"]]
     except ValueError:
         return error_json("Valor numérico fornecido não reconhecido")
