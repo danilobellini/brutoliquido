@@ -26,7 +26,7 @@ from __future__ import unicode_literals, division
 from datetime import datetime
 from numbers import Number
 from mpmath import findroot
-from flask import Flask, jsonify, render_template, request, g
+from flask import Flask, jsonify, render_template, request, g, abort
 import coffeescript, codecs
 from os.path import exists, getmtime
 import os
@@ -40,16 +40,14 @@ uopen = lambda fname, mode: codecs.open(fname, mode, encoding="utf-8")
 def static_file_converted(fnamebase, converter, from_ext, to_ext):
     in_fname = "templates/{fnamebase}.{from_ext}".format(**locals())
     out_fname_nodir = "{fnamebase}.{to_ext}".format(**locals())
-
-    out_dir = app.root_path + app.static_url_path
-    out_fname = os.path.join(out_dir, out_fname_nodir)
+    out_fname = os.path.join(app.static_folder, out_fname_nodir)
 
     if not exists(in_fname):
         abort(404)
 
     if (not exists(out_fname)) or getmtime(in_fname) >= getmtime(out_fname):
-        if not exists(out_dir):
-            os.makedirs(out_dir)
+        if not exists(app.static_folder):
+            os.makedirs(app.static_folder)
         with uopen(in_fname,  "r") as in_file:
             with uopen(out_fname, "w") as out_file:
                 out_file.write(converter(in_file.read()))
@@ -197,19 +195,20 @@ def str2r(val):
 
 
 def todos_valores(bruto):
-    bruto_sem_inss = round(bruto - inss(bruto), 2)
+    """ Cálculo direto do IRPF, INSS e salário líquido a partir do bruto """
+    valor_inss = inss(bruto)
+    bruto_sem_inss = round(bruto - valor_inss, 2)
     liquido = round(bruto_sem_inss2liquido(bruto_sem_inss), 2)
     ir_aliq, ir_deduzir = obtem_valores_tabela(bruto, irpf_tabela[g.data])
     return dict(
         bruto = bruto,
         bruto_sem_inss = bruto_sem_inss,
         liquido = liquido,
-        inss = round(inss(bruto), 2),
+        inss = round(valor_inss, 2),
         inss_aliq = obtem_valores_tabela(bruto, inss_tabela[g.data]),
         ir = round(bruto_sem_inss - liquido, 2),
         ir_aliq = ir_aliq,
         ir_deduzir = ir_deduzir,
-        data_base = g.data,
     )
 
 
@@ -218,32 +217,35 @@ def index():
     return render_template("index.jade", datas_base=datas_base)
 
 
+def error_json(msg):
+    return jsonify(status="oops", err_msg=msg)
+
+
 @app.route("/calc", methods=["GET", "POST"])
 def ajax_calc():
+    # Tratamento dos valores de entrada
     source = request.args if request.method == "GET" else request.form
-    #app.logger.info(dict(request.headers))
-    app.logger.info(request.data)
     g.data = datas_base_dict.encontra_data_base(source.get("data", None))
     try:
         valores = [str2r(source.get(k, ""))
                    for k in ["liquido", "bruto", "bruto_sem_inss"]]
     except ValueError:
-        return jsonify(
-            status = "oops",
-            err_msg =  "Valor numérico fornecido não reconhecido",
-        )
-    if len(filter(lambda x: x, valores)) > 1:
-        return jsonify(
-            status = "oops",
-            err_msg = "Use apenas um entre liquido, bruto ou bruto_sem_inss"
-        )
+        return error_json("Valor numérico fornecido não reconhecido")
+    if len(filter(bool, valores)) > 1:
+        return error_json("Use apenas um entre liquido, bruto ou "
+                          "bruto_sem_inss")
+
+    # Obtém o valor bruto
     liquido, bruto, bruto_sem_inss = valores
     if liquido:
         bruto_sem_inss = round(liquido2bruto_sem_inss(liquido), 2)
     if liquido or bruto_sem_inss:
         bruto = bruto_sem_inss2bruto(bruto_sem_inss)
+
+    # Resultado
     result = todos_valores(round(bruto, 2))
     result["status"] = "ok"
+    result["data_base"] = g.data
     return jsonify(**result)
 
 
