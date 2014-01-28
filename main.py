@@ -32,6 +32,7 @@ from os.path import exists, getmtime
 import os
 
 from misc import uopen, currency2float
+from tablereader import load_table
 
 app = Flask(__name__)
 app.jinja_env.add_extension('pyjade.ext.jinja.PyJadeExtension')
@@ -80,74 +81,21 @@ class DateStrKeyDict(dict):
         return resultado
 
 
+def load_txt(fname, schema):
+    return DateStrKeyDict(load_table(os.path.join(app.static_folder, fname),
+                                     ["Inicial", "Final"] + schema))
+
+
 # Pares tabela, limite para cálculo de alíquota
 # Tabela com o piso (bruto) associado à alíquota
-inss_pares = DateStrKeyDict({
-    "2011-01": ([
-        [   0.000, .08],
-        [1106.905, .09],
-        [1844.835, .11],
-    ], 3689.66),
-    "2011-07": ([
-        [   0.000, .08],
-        [1107.525, .09],
-        [1845.875, .11],
-    ], 3691.74),
-    "2012": ([
-        [   0.000, .08],
-        [1174.865, .09],
-        [1958.105, .11],
-    ], 3916.20),
-    "2013": ([
-        [   0.000, .08],
-        [1247.705, .09],
-        [2079.505, .11],
-    ], 4159.00),
-    "2014": ([
-        [   0.000, .08],
-        [1317.075, .09],
-        [2195.125, .11],
-    ], 4390.24),
-})
-
+inss_pares = load_txt("inss.txt", ["Alíquota"])
 inss_teto = DateStrKeyDict((k, round(limite * tabela[-1][-1], 2)) # Em R$
                            for k, (tabela, limite) in inss_pares.iteritems())
 inss_tabela = DateStrKeyDict((k, tabela)
                               for k, (tabela, lim) in inss_pares.iteritems())
 
 # Piso (bruto - INSS) associado ao par (alíquota, valor a deduzir)
-irpf_tabela = DateStrKeyDict({
-    "2011-01": [
-        [1499.155, (.075, 112.43)],
-        [2246.755, (.15,  280.94)],
-        [2995.705, (.225, 505.62)],
-        [3743.195, (.275, 692.78)],
-    ],
-    "2011-04": [
-        [1566.615, (.075, 117.49)],
-        [2347.855, (.15,  293.58)],
-        [3130.515, (.225, 528.37)],
-        [3911.635, (.275, 723.95)],
-    ],
-    "2012": [
-        [1637.115, (.075, 122.78)],
-        [2453.505, (.15,  306.80)],
-        [3271.385, (.225, 552.15)],
-        [4087.655, (.275, 756.53)],
-    ],
-    "2013": [
-        [1710.785, (.075, 128.31)],
-        [2563.915, (.15,  320.60)],
-        [3418.595, (.225, 577.00)],
-        [4271.595, (.275, 790.58)],
-    ],
-    "2014": [
-        [1787.775, (.075, 134.08)],
-        [2679.295, (.15,  335.03)],
-        [3572.435, (.225, 602.96)],
-        [4463.815, (.275, 826.15)],
-    ],
-})
+irpf_tabela = load_txt("irpf.txt", ["Alíquota", "Valor a deduzir"])
 
 datas_base = sorted(set(irpf_tabela).union(set(inss_tabela)))
 datas_base_dict = DateStrKeyDict((k, None) for k in datas_base)
