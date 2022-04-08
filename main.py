@@ -81,36 +81,39 @@ class DateStrKeyDict(dict):
         return resultado
 
 
-def load_txt(fname, schema):
-    return DateStrKeyDict(load_table(os.path.join(app.static_folder, fname),
-                                     ["Inicial", "Final"] + schema))
+def load_txt(fname):
+    return DateStrKeyDict(
+        load_table(os.path.join(app.static_folder, fname),
+                   ["Inicial", "Final", "Alíquota", "Valor a deduzir"])
+    )
 
 
 # Pares tabela, limite para cálculo de alíquota
 # Tabela com o piso (bruto) associado à alíquota
-inss_pares = load_txt("inss.txt", ["Alíquota"])
-inss_teto = DateStrKeyDict((k, round(limite * tabela[-1][-1], 2)) # Em R$
-                           for k, (tabela, limite) in inss_pares.iteritems())
+inss_pares = load_txt("inss.txt")
+inss_teto = DateStrKeyDict(  # Em R$
+    (data_str, round(limite * tabela[-1][-1][0] - tabela[-1][-1][1], 2))
+    for data_str, (tabela, limite) in inss_pares.iteritems()
+)
 inss_tabela = DateStrKeyDict((k, tabela)
                               for k, (tabela, lim) in inss_pares.iteritems())
 
 # Piso (bruto - INSS) associado ao par (alíquota, valor a deduzir)
-irpf_tabela = load_txt("irpf.txt", ["Alíquota", "Valor a deduzir"])
+irpf_tabela = load_txt("irpf.txt")
 
 datas_base = sorted(set(irpf_tabela).union(set(inss_tabela)))
 datas_base_dict = DateStrKeyDict((k, None) for k in datas_base)
 
 
 def obtem_valores_tabela(bruto, tabela):
-    first = tabela[0][1]
-    start = 0. if isinstance(first, Number) else tuple(0. for el in first)
+    start = tuple(0. for el in tabela[0][1])
     return reduce(lambda val, (piso, novo_val):
                       novo_val if bruto >= piso else val,
                   tabela, start)
 
 def inss(bruto):
-    inss_aliq = obtem_valores_tabela(bruto, inss_tabela[g.data])
-    return min(bruto * inss_aliq, inss_teto[g.data])
+    inss_aliq, inss_deduzir = obtem_valores_tabela(bruto, inss_tabela[g.data])
+    return min(bruto * inss_aliq - inss_deduzir, inss_teto[g.data])
 
 def bruto_sem_inss2liquido(bruto):
     irpf_aliq, irpf_deduzir = obtem_valores_tabela(bruto, irpf_tabela[g.data])
@@ -131,12 +134,14 @@ def todos_valores(bruto):
     bruto_sem_inss = round(bruto - valor_inss, 2)
     liquido = round(bruto_sem_inss2liquido(bruto_sem_inss), 2)
     ir_aliq, ir_deduzir = obtem_valores_tabela(bruto, irpf_tabela[g.data])
+    inss_aliq, inss_deduzir = obtem_valores_tabela(bruto, inss_tabela[g.data])
     return dict(
         bruto = bruto,
         bruto_sem_inss = bruto_sem_inss,
         liquido = liquido,
         inss = round(valor_inss, 2),
-        inss_aliq = obtem_valores_tabela(bruto, inss_tabela[g.data]),
+        inss_aliq=inss_aliq,
+        inss_deduzir=inss_deduzir,
         ir = round(bruto_sem_inss - liquido, 2),
         ir_aliq = ir_aliq,
         ir_deduzir = ir_deduzir,
