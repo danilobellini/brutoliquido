@@ -42,7 +42,8 @@ fieldsToObject = (args...) ->
 # Refresh contents via an AJAX call
 refresh = ->
   xhr = new window.XMLHttpRequest()
-  xhr.onload = (evt) -> result.textContent = @responseText
+  xhr.onload = (evt) ->
+    result.textContent = @responseText.replaceAll(",", ",\n ")
   xhr.open "POST", "/calc", true # method, address, async
   xhr.setRequestHeader "Content-Type", "application/x-www-form-urlencoded"
   xhr.send formString fieldsToObject data_field, last_field
