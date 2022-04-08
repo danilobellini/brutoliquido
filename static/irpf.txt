@@ -1,9 +1,6 @@
 ##############################
 # Tabelas de cálculo do IRPF #
-############################################################
-# Valores obtidos através do link (acesso dia 2016-11-01): #
-# http://www.receita.fazenda.gov.br/                       #
-############################################################
+##############################
 
   Inicial    ; Final      ; Alíquota ; Valor a deduzir
 
