@@ -66,13 +66,23 @@ def _get_js(fnamebase):
 
 
 class DateStrKeyDict(dict):
-    """ Dicionário em que as chaves são strings representando datas """
+    """
+    Dict whose keys are YYYY or YYYY-MM strings, representing dates.
+    For data strings that are not keys of a given instance,
+    the result value is the value assigned to the most "recent" entry
+    (in the sense of keys representing dates) prior to the key date.
+
+    The ``None`` key represents the current date,
+    and its assigned value gets cached
+    when accessing it for the first time.
+    """
     def encontra_data_base(self, data=None):
         if data in self:
             return data
         if data is None:
             data = datetime.now().isoformat()
-        return max(key for key in self.keys() if key < data)
+        return max(key for key in self.keys()
+                   if key < data and key is not None)
 
     def __missing__(self, data):
         resultado = self[self.encontra_data_base(data)]
