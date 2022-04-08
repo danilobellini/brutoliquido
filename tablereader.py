@@ -27,9 +27,9 @@ import math
 
 def line_gen(file_object, comment_symbol="#"):
     """
-    Generator for lines (strings) that aren't empty after removing comments
-    that starts with the comment_symbol and trailing whitespaces. The input
-    is a file-like object.
+    Generator for lines (strings) of an input file that aren't empty
+    after removing comments that start with the ``comment_symbol``
+    and trailing whitespaces.
     """
     for line_raw in file_object.readlines():
         line = line_raw.split(comment_symbol, 1)[0].rstrip()
@@ -43,8 +43,16 @@ def str_to_float(val):
 
 def read_tables(file_obj, separator_symbol=";"):
     """
-    Reads a dictionary with a "sharded" table (a list with a dictionaries for
-    each line) for each section in the given file.
+    Return a dictionary whose items are the sections of the given file,
+    where a section starts by its key (from the first column of a line)
+    and whose contents are the following lines
+    (starting with at least one whitespace).
+    The content lines of a section is a CSV-like table,
+    whose header is shared, appearing only before the first section,
+    and they're parsed as a list of dicts,
+    already converted to floating numbers
+    (using "," as the decimal separators, due to the Brazilian locale).
+    The "%" suffix means ``1e-2``.
     """
     table = {}
     lines = line_gen(file_obj)
